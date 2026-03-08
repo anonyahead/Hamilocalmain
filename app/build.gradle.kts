@@ -56,11 +56,11 @@ dependencies {
     implementation(libs.androidx.activity.compose)
 
     // Firebase
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.common)
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.firestore)
-    implementation(libs.kotlinx.coroutines.play.services)
+    // implementation(platform(libs.firebase.bom))
+    // implementation(libs.firebase.common)
+    // implementation(libs.firebase.auth)
+    // implementation(libs.firebase.firestore)
+    // implementation(libs.kotlinx.coroutines.play.services)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
