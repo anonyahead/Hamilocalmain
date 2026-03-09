@@ -63,6 +63,9 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation(libs.kotlinx.coroutines.play.services)
 
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
+
     // Location
     implementation(libs.play.services.location)
 
