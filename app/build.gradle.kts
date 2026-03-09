@@ -63,6 +63,9 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation(libs.kotlinx.coroutines.play.services)
 
+    // Location
+    implementation(libs.play.services.location)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
