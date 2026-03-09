@@ -61,8 +61,8 @@ class HamiLocalMessagingService : FirebaseMessagingService() {
                 "Hami Local Notifications",
                 NotificationManager.IMPORTANCE_DEFAULT
             )
-            // Using Context.NOTIFICATION_SERVICE for better compatibility
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            // Using NOTIFICATION_SERVICE directly for better readability
+            val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
 
