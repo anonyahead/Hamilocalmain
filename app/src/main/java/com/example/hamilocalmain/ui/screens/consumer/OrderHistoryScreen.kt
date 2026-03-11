@@ -87,7 +87,7 @@ fun OrderHistoryScreen(
  * A card that displays summary information for a single order in the history list.
  */
 @Composable
-private fun OrderHistoryCard(
+fun OrderHistoryCard(
     order: Order,
     onNavigateToRating: (orderId: String, farmerName: String) -> Unit
 ) {
@@ -132,7 +132,7 @@ private fun OrderHistoryCard(
  * A colored badge to indicate the current status of an order.
  */
 @Composable
-private fun StatusBadge(status: OrderStatus) {
+fun StatusBadge(status: OrderStatus) {
     val (text, color) = when (status) {
         OrderStatus.PENDING -> "Pending" to Warning
         OrderStatus.CONFIRMED -> "Confirmed" to PrimaryGreen
@@ -156,4 +156,3 @@ private fun StatusBadge(status: OrderStatus) {
         )
     }
 }
-
