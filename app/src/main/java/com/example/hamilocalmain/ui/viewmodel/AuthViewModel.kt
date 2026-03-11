@@ -1,5 +1,6 @@
 package com.example.hamilocalmain.ui.viewmodel
 
+import android.app.Activity
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,6 +8,9 @@ import com.example.hamilocalmain.data.firebase.FirebaseAuthManager
 import com.example.hamilocalmain.data.model.Address
 import com.example.hamilocalmain.data.model.User
 import com.example.hamilocalmain.data.model.UserType
+import com.google.firebase.FirebaseException
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +39,11 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
+    // State fields used by the OTP verification process
+    private val isLoading = MutableStateFlow(false)
+    private val errorMessage = MutableStateFlow<String?>(null)
+    private val verificationId = MutableStateFlow<String?>(null)
+
     init {
         // Initial check for current user could go here
     }
@@ -42,16 +51,38 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Sends OTP to the provided phone number.
      * 
-     * @param phone The phone number to send the verification code to.
+     * @param phoneNumber The phone number to send the verification code to.
+     * @param activity The activity context required for Firebase phone auth.
      */
-    fun sendOtp(phone: String) {
-        _authState.value = AuthState.Loading
-        // In a real implementation, we would pass callbacks to handle results.
-        // For now, we simulate the call to authManager.
-        authManager.sendOtp(phone, object : Any() {
-            // Placeholder for PhoneAuthProvider.OnVerificationStateChangedCallbacks
-        })
-        // Note: Actual state transition to Success or Error would happen in callbacks.
+    fun sendOtp(phoneNumber: String, activity: Activity) {
+        isLoading.value = true
+        
+        val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                // Auto-verification completed
+                isLoading.value = false
+                _authState.value = AuthState.Success
+            }
+            
+            override fun onVerificationFailed(e: FirebaseException) {
+                // Verification failed
+                isLoading.value = false
+                errorMessage.value = e.message ?: "Verification failed"
+                _authState.value = AuthState.Error(errorMessage.value ?: "Verification failed")
+            }
+            
+            override fun onCodeSent(
+                verificationId: String,
+                token: PhoneAuthProvider.ForceResendingToken
+            ) {
+                // Code sent to phone
+                this@AuthViewModel.verificationId.value = verificationId
+                isLoading.value = false
+                // State remains success or transition to a 'CodeSent' state if defined
+            }
+        }
+        
+        authManager.verifyPhoneNumber(phoneNumber, activity, callbacks)
     }
 
     /**
@@ -66,7 +97,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             val result = authManager.verifyOtp(code, verificationId)
             result.onSuccess {
                 _authState.value = AuthState.Success
-                // Fetch profile after successful verification if possible
             }.onFailure {
                 _authState.value = AuthState.Error(it.message ?: "Verification failed")
             }
@@ -82,7 +112,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun saveProfile(name: String, userType: UserType, address: Address) {
         viewModelScope.launch {
-            val currentId = "" // Should get from authManager.getCurrentUser()
+            val currentId = authManager.getCurrentUser()?.uid ?: ""
             val user = User(
                 id = currentId,
                 name = name,

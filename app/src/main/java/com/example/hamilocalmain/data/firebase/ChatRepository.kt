@@ -8,16 +8,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 
-/**
- * Repository for managing chat data in Firebase Firestore.
- */
 class ChatRepository(private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()) {
 
     private val threadsCollection = firestore.collection("threads")
 
-    /**
-     * Gets or creates a chat thread between two users. Thread ID = sorted user IDs joined by underscore.
-     */
     suspend fun getOrCreateThread(userId1: String, userId2: String): String {
         val sortedIds = listOf(userId1, userId2).sorted()
         val threadId = "${sortedIds[0]}_${sortedIds[1]}"
@@ -38,9 +32,6 @@ class ChatRepository(private val firestore: FirebaseFirestore = FirebaseFirestor
         return threadId
     }
 
-    /**
-     * Returns live messages for a thread, ordered by timestamp.
-     */
     fun getMessagesFlow(threadId: String): Flow<List<Message>> {
         return threadsCollection.document(threadId)
             .collection("messages")
@@ -49,9 +40,6 @@ class ChatRepository(private val firestore: FirebaseFirestore = FirebaseFirestor
             .map { snapshot -> snapshot.toObjects(Message::class.java) }
     }
 
-    /**
-     * Sends a message and updates the thread's lastMessage and lastMessageTime.
-     */
     suspend fun sendMessage(threadId: String, message: Message): Result<Unit> {
         return try {
             val messageRef = threadsCollection.document(threadId).collection("messages").document()
@@ -73,9 +61,6 @@ class ChatRepository(private val firestore: FirebaseFirestore = FirebaseFirestor
         }
     }
 
-    /**
-     * Marks all messages in thread as read for this user.
-     */
     suspend fun markAsRead(threadId: String, userId: String): Result<Unit> {
         return try {
             val unreadMessages = threadsCollection.document(threadId)

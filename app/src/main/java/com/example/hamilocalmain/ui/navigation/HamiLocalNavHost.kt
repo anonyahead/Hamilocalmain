@@ -2,6 +2,7 @@ package com.example.hamilocalmain.ui.navigation
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -80,9 +81,14 @@ fun HamiLocalNavHost(
     productViewModel: ProductViewModel,
     orderViewModel: OrderViewModel,
     chatViewModel: ChatViewModel,
-    locationViewModel: LocationViewModel
+    locationViewModel: LocationViewModel,
+    modifier: Modifier = Modifier
 ) {
-    NavHost(navController = navController, startDestination = Routes.SPLASH) {
+    NavHost(
+        navController = navController, 
+        startDestination = Routes.SPLASH,
+        modifier = modifier
+    ) {
         composable(Routes.SPLASH) { /* Placeholder: SplashScreen(navController) */ Text(Routes.SPLASH) }
         composable(Routes.WELCOME) { /* Placeholder: WelcomeScreen(navController) */ Text(Routes.WELCOME) }
         composable(Routes.LOGIN) { /* Placeholder: LoginScreen(authViewModel, navController) */ Text(Routes.LOGIN) }

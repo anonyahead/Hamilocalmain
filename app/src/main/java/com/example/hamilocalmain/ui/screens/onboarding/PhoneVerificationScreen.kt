@@ -1,5 +1,6 @@
 package com.example.hamilocalmain.ui.screens.onboarding
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
@@ -11,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -35,6 +37,7 @@ fun PhoneVerificationScreen(
     var otpCode by remember { mutableStateOf(List(6) { "" }) }
     val authState by authViewModel.authState.collectAsState()
     var timerSeconds by remember { mutableIntStateOf(60) }
+    val context = LocalContext.current as ComponentActivity
 
     LaunchedEffect(Unit) {
         while (timerSeconds > 0) {
@@ -103,7 +106,10 @@ fun PhoneVerificationScreen(
             )
         } else {
             TextButton(onClick = { 
-                authViewModel.sendOtp("+977$phone")
+                authViewModel.sendOtp(
+                    phoneNumber = "+977$phone",
+                    activity = context
+                )
                 timerSeconds = 60
             }) {
                 Text("Resend OTP", color = SecondaryOrange)

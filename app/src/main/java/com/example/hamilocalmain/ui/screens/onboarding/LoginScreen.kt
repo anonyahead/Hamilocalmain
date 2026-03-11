@@ -1,5 +1,6 @@
 package com.example.hamilocalmain.ui.screens.onboarding
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -8,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -29,6 +31,7 @@ fun LoginScreen(
 ) {
     var phoneNumber by remember { mutableStateOf("") }
     val authState by authViewModel.authState.collectAsState()
+    val context = LocalContext.current as ComponentActivity
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
@@ -96,7 +99,12 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { authViewModel.sendOtp("+977$phoneNumber") },
+                onClick = { 
+                    authViewModel.sendOtp(
+                        phoneNumber = "+977$phoneNumber",
+                        activity = context
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
