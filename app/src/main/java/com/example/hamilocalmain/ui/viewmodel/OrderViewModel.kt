@@ -130,18 +130,18 @@ class OrderViewModel(private val repository: OrderRepository = OrderRepository()
 
     /**
      * Places a new order in Firestore based on the current cart items.
-     * Items are grouped by farmer before placement.
      * 
      * @param consumerId The ID of the buyer.
      * @param consumerName The name of the buyer.
      * @param pickupAddress Where the items will be collected.
+     * @param onOrdersPlaced Callback with the list of created orders.
      */
-    fun placeOrder(consumerId: String, consumerName: String, pickupAddress: String) {
+    fun placeOrder(consumerId: String, consumerName: String, pickupAddress: String, onOrdersPlaced: (List<Order>) -> Unit) {
         val items = _cartItems.value
         if (items.isEmpty()) return
 
         viewModelScope.launch {
-            // Grouping items by farmer since one order = one farmer in this model
+            val createdOrders = mutableListOf<Order>()
             val groupedByFarmer = items.groupBy { it.product.farmerId }
             
             for ((farmerId, farmerItems) in groupedByFarmer) {
@@ -167,9 +167,12 @@ class OrderViewModel(private val repository: OrderRepository = OrderRepository()
                     totalAmount = total,
                     pickupAddress = pickupAddress
                 )
-                repository.createOrder(order)
+                repository.createOrder(order).onSuccess { createdOrder ->
+                    createdOrders.add(createdOrder)
+                }
             }
             clearCart()
+            onOrdersPlaced(createdOrders)
         }
     }
 
