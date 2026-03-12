@@ -1,5 +1,6 @@
 package com.example.hamilocalmain.ui.screens.farmer
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,10 +31,12 @@ fun ShortageManagementScreen(
     orderViewModel: OrderViewModel,
     productViewModel: ProductViewModel
 ) {
+    // ==================== STATE ====================
     val productState by productViewModel.farmerProductsState.collectAsState()
     val isAllocating by orderViewModel.isAllocating.collectAsState()
     val allocationResults by orderViewModel.allocationResults.collectAsState()
 
+    // ==================== UI LAYOUT ====================
     Scaffold(
         topBar = {
             TopAppBar(
@@ -67,6 +70,9 @@ fun ShortageManagementScreen(
                     is ProductState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
                     is ProductState.Error -> Text((productState as ProductState.Error).message, color = MaterialTheme.colorScheme.error)
                     is ProductState.Success -> {
+                        // SHORTAGE DETECTION: A product is identified as having a shortage when the 
+                        // total requested quantity (pendingOrderQuantity) is strictly greater than 
+                        // the currently available stock (availableQuantity).
                         val shortageProducts = (productState as ProductState.Success).products
                             .filter { it.pendingOrderQuantity > it.availableQuantity }
 
@@ -107,6 +113,8 @@ fun ShortageManagementScreen(
         }
     }
 }
+
+// ==================== SUB-COMPOSABLES ====================
 
 /**
  * A card that highlights a product with a stock shortage.

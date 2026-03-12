@@ -29,6 +29,8 @@ import com.example.hamilocalmain.ui.viewmodel.ProductState
 import com.example.hamilocalmain.ui.viewmodel.ProductViewModel
 import kotlinx.coroutines.launch
 
+// ==================== UI SCREEN ====================
+
 /**
  * Detailed view of a single product with quantity selection and add-to-cart functionality.
  */
@@ -40,6 +42,7 @@ fun ProductDetailScreen(
     productViewModel: ProductViewModel,
     orderViewModel: OrderViewModel
 ) {
+    // ==================== STATE ====================
     val productsState by productViewModel.nearbyProductsState.collectAsState()
     val product = (productsState as? ProductState.Success)?.products?.find { it.id == productId }
     
@@ -47,6 +50,7 @@ fun ProductDetailScreen(
     val scope = rememberCoroutineScope()
     var quantity by remember { mutableDoubleStateOf(1.0) }
 
+    // ==================== UI LAYOUT ====================
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -174,6 +178,8 @@ fun ProductDetailScreen(
         }
     }
 }
+
+// ==================== SUB-COMPOSABLES ====================
 
 /**
  * UI component for picking quantity with plus and minus buttons.

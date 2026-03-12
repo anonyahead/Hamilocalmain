@@ -12,14 +12,21 @@ import kotlinx.coroutines.tasks.await
 
 /**
  * Repository for managing order data in Firebase Firestore.
+ * This class handles order creation, status updates, and the fair allocation algorithm.
  */
 class OrderRepository(private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()) {
 
+    // ==================== COLLECTIONS ====================
     private val ordersCollection = firestore.collection("orders")
     private val productsCollection = firestore.collection("products")
 
+    // ==================== ORDER OPERATIONS ====================
+
     /**
      * Places a new order in Firestore.
+     * 
+     * @param order The order data to save.
+     * @return Result containing the saved order with generated ID.
      */
     suspend fun createOrder(order: Order): Result<Order> {
         return try {
@@ -33,7 +40,8 @@ class OrderRepository(private val firestore: FirebaseFirestore = FirebaseFiresto
     }
 
     /**
-     * Live orders for consumer.
+     * Provides a live flow of orders placed by a specific consumer.
+     * Used by the consumer's order history screen.
      */
     fun getConsumerOrdersFlow(consumerId: String): Flow<List<Order>> {
         return ordersCollection
@@ -43,7 +51,8 @@ class OrderRepository(private val firestore: FirebaseFirestore = FirebaseFiresto
     }
 
     /**
-     * Live orders for farmer.
+     * Provides a live flow of orders received by a specific farmer.
+     * Used by the farmer's dashboard and order management screens.
      */
     fun getFarmerOrdersFlow(farmerId: String): Flow<List<Order>> {
         return ordersCollection
@@ -54,6 +63,9 @@ class OrderRepository(private val firestore: FirebaseFirestore = FirebaseFiresto
 
     /**
      * Updates order lifecycle status.
+     * 
+     * @param orderId The unique ID of the order.
+     * @param status The new status to apply.
      */
     suspend fun updateOrderStatus(orderId: String, status: OrderStatus): Result<Unit> {
         return try {
@@ -65,7 +77,25 @@ class OrderRepository(private val firestore: FirebaseFirestore = FirebaseFiresto
     }
 
     /**
-     * Proportional Fair Allocation Algorithm. Example: 20kg available, buyers ordered 10kg+15kg+5kg (30kg total) → Buyer1 gets (10/30)*20=6.67kg, Buyer2 gets 10kg, Buyer3 gets 3.33kg.
+     * Proportional Fair Allocation Algorithm. 
+     * used when demand exceeds supply to distribute available stock fairly among buyers.
+     * 
+     * ALGORITHM:
+     * 1. Sum total requested quantity (Demand) across all pending orders for this product.
+     * 2. Calculate allocation factor: Available / Demand.
+     * 3. Set new quantity for each order: OrderedQty * AllocationFactor.
+     * 
+     * EXAMPLE:
+     * - 20kg available stock.
+     * - Buyers ordered: 10kg, 15kg, and 5kg (Total Demand = 30kg).
+     * - Allocation Factor = 20 / 30 = 0.667
+     * - Result:
+     *   - Buyer1 (ordered 10kg): 10 * 0.667 = 6.67kg
+     *   - Buyer2 (ordered 15kg): 15 * 0.667 = 10.00kg
+     *   - Buyer3 (ordered 5kg): 5 * 0.667 = 3.33kg
+     * 
+     * @param productId The ID of the product to allocate.
+     * @return List of results showing what each consumer was allocated.
      */
     suspend fun processFairAllocation(productId: String): List<AllocationResult> {
         return try {
@@ -96,8 +126,6 @@ class OrderRepository(private val firestore: FirebaseFirestore = FirebaseFiresto
                     val item = order.items.find { it.productId == productId }!!
                     val requestedQty = item.quantity
                     
-                    // allocatedQty = (orderedQty / totalDemand) * availableQuantity
-                    // If available exceeds demand, buyers get exactly what they asked for
                     val allocatedQty = if (availableQuantity >= totalDemand) {
                         requestedQty
                     } else {
