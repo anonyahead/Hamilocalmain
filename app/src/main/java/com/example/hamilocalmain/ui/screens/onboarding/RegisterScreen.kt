@@ -33,19 +33,18 @@ import com.example.hamilocalmain.ui.theme.TextSecondary
 import com.example.hamilocalmain.ui.viewmodel.AuthState
 import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
 
-/**
- * Login screen for phone-based authentication.
- * Handles phone number input and triggers OTP sending.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(
+fun RegisterScreen(
     navController: NavController,
     authViewModel: AuthViewModel
 ) {
     var phoneNumber by remember { mutableStateOf("") }
     var selectedCountryCode by remember { mutableStateOf("+977") }
     var showCountryPicker by remember { mutableStateOf(false) }
+    
+    val authState by authViewModel.authState.collectAsState()
+    val context = LocalContext.current as ComponentActivity
 
     val countryCodes = listOf(
         "🇳🇵 Nepal" to "+977",
@@ -80,9 +79,6 @@ fun LoginScreen(
         "🇲🇽 Mexico" to "+52"
     )
 
-    val authState by authViewModel.authState.collectAsState()
-    val context = LocalContext.current as ComponentActivity
-
     LaunchedEffect(authState) {
         if (authState is AuthState.CodeSent) {
             authViewModel.resetState()
@@ -93,7 +89,7 @@ fun LoginScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Login") },
+                title = { Text("Create Account") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -124,7 +120,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "Enter your phone number",
+                    text = "Create your account",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -132,7 +128,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(
-                    text = "We will send a 6-digit verification code to this number",
+                    text = "Register with your phone number",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -238,7 +234,7 @@ fun LoginScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Send OTP", style = MaterialTheme.typography.titleMedium)
+                        Text("Send OTP to Register", style = MaterialTheme.typography.titleMedium)
                     }
                 }
 
@@ -257,14 +253,14 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    Text("New to Hami Local? ", style = MaterialTheme.typography.bodyMedium)
+                    Text("Already have an account? ", style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        "Register",
+                        "Login",
                         style = MaterialTheme.typography.bodyMedium,
                         color = SecondaryOrange,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { 
-                            navController.navigate(Routes.REGISTER)
+                            navController.popBackStack()
                         }
                     )
                 }

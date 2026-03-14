@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.hamilocalmain.ui.navigation.Routes
 import com.example.hamilocalmain.ui.theme.SecondaryOrange
 import com.example.hamilocalmain.ui.viewmodel.AuthState
 import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
@@ -36,6 +37,7 @@ fun PhoneVerificationScreen(
 ) {
     var otpCode by remember { mutableStateOf(List(6) { "" }) }
     val authState by authViewModel.authState.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
     var timerSeconds by remember { mutableIntStateOf(60) }
     val context = LocalContext.current as ComponentActivity
 
@@ -43,6 +45,32 @@ fun PhoneVerificationScreen(
         while (timerSeconds > 0) {
             delay(1000L)
             timerSeconds--
+        }
+    }
+
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Success) {
+            authViewModel.resetState()
+            // If user already has a profile, go home. Otherwise setup profile.
+            if (currentUser != null && currentUser!!.name.isNotEmpty()) {
+                when (currentUser!!.userType) {
+                    com.example.hamilocalmain.data.model.UserType.FARMER ->
+                        navController.navigate(Routes.FARMER_DASHBOARD) {
+                            popUpTo(Routes.WELCOME) { inclusive = true }
+                        }
+                    com.example.hamilocalmain.data.model.UserType.CONSUMER ->
+                        navController.navigate(Routes.CONSUMER_HOME) {
+                            popUpTo(Routes.WELCOME) { inclusive = true }
+                        }
+                }
+            } else {
+                navController.navigate(Routes.PROFILE_SETUP) {
+                    popUpTo(Routes.WELCOME) { inclusive = true }
+                }
+            }
+        }
+        if (authState is AuthState.Error) {
+            // error is already shown via the error text below
         }
     }
 
@@ -83,7 +111,7 @@ fun PhoneVerificationScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { authViewModel.verifyOtp(otpCode.joinToString(""), "") }, // VerificationId should be handled via ViewModel state
+            onClick = { authViewModel.verifyOtp(otpCode.joinToString(""), "") },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -95,6 +123,15 @@ fun PhoneVerificationScreen(
             } else {
                 Text("Verify", style = MaterialTheme.typography.titleMedium)
             }
+        }
+
+        if (authState is AuthState.Error) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = (authState as AuthState.Error).message,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))

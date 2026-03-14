@@ -37,6 +37,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -53,7 +54,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.material3.window.size)
+    implementation("androidx.compose.material3:material3-window-size-class:1.3.1")
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.activity.compose)
 

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hamilocalmain.data.firebase.ProductRepository
 import com.example.hamilocalmain.data.model.Product
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +30,12 @@ class ProductViewModel(private val repository: ProductRepository = ProductReposi
 
     private val _nearbyProductsState = MutableStateFlow<ProductState>(ProductState.Loading)
     val nearbyProductsState: StateFlow<ProductState> = _nearbyProductsState.asStateFlow()
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            // all Firebase and repository calls here
+        }
+    }
 
     /**
      * Loads live updates of products belonging to a specific farmer.

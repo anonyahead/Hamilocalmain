@@ -1,20 +1,21 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "project_id": "hamilocalmain-placeholder",
-    "storage_bucket": "hamilocalmain-placeholder.appspot.com"
+    "project_number": "905036807077",
+    "project_id": "hamilocal-305f8",
+    "storage_bucket": "hamilocal-305f8.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:0000000000000000000000",
+        "mobilesdk_app_id": "1:905036807077:android:45684eced4f3446212c64c",
         "android_client_info": {
           "package_name": "com.example.hamilocalmain"
         }
       },
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "placeholder_api_key"
+          "current_key": "AIzaSyCQO1wVtLiHgIri_hiqcLj7IUWSd74cyEc"
         }
       ],
       "services": {

@@ -14,19 +14,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.hamilocalmain.data.model.Product
 import com.example.hamilocalmain.ui.navigation.Routes
 import com.example.hamilocalmain.ui.theme.TextSecondary
 import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
 import com.example.hamilocalmain.ui.viewmodel.CartItem
 import com.example.hamilocalmain.ui.viewmodel.OrderViewModel
-import java.text.NumberFormat
-import java.util.Locale
 
 /**
  * Manages the user's shopping cart, allowing for item adjustments, address input,
  * and final order placement.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartScreen(
     navController: NavController,
@@ -172,7 +170,6 @@ private fun CartItemRow(cartItem: CartItem, orderViewModel: OrderViewModel) {
  */
 @Composable
 private fun PriceBreakdownCard(subtotal: Double) {
-    val numberFormat = remember { NumberFormat.getCurrencyInstance(Locale("en", "NP")).apply { maximumFractionDigits = 2 } }
     val platformFee = subtotal * 0.02
     val total = subtotal + platformFee
 
@@ -195,3 +192,4 @@ private fun PriceBreakdownCard(subtotal: Double) {
         }
     }
 }
+

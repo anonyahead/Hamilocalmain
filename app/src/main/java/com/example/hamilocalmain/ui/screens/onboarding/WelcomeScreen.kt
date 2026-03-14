@@ -15,15 +15,29 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.hamilocalmain.ui.navigation.Routes
+import com.example.hamilocalmain.ui.theme.HamiLocalTheme
 import com.example.hamilocalmain.ui.theme.PrimaryGreen
 import com.example.hamilocalmain.ui.theme.PrimaryGreenDark
 import com.example.hamilocalmain.ui.theme.SecondaryOrange
 import com.example.hamilocalmain.ui.theme.TextPrimary
 import com.example.hamilocalmain.ui.theme.TextSecondary
+
+@Preview(showBackground = true, device = "spec:width=1280dp,height=800dp,dpi=240") // Tablet
+@Preview(showBackground = true, device = "spec:width=1920dp,height=1080dp,dpi=160") // Desktop
+@Preview(showBackground = true) // Standard Phone
+@Composable
+fun WelcomeScreenPreview() {
+    HamiLocalTheme {
+        // You would need a dummy NavController
+        WelcomeScreen(navController = rememberNavController())
+    }
+}
 
 /**
  * Full-screen welcome view with branding and entry action.

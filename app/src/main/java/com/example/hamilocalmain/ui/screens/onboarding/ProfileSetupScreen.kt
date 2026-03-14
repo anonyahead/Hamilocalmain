@@ -1,5 +1,9 @@
 package com.example.hamilocalmain.ui.screens.onboarding
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,8 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import com.example.hamilocalmain.data.model.Address
 import com.example.hamilocalmain.data.model.UserType
 import com.example.hamilocalmain.ui.navigation.Routes
 import com.example.hamilocalmain.ui.theme.PrimaryGreen
@@ -44,6 +48,14 @@ fun ProfileSetupScreen(
     val detectedAddress by locationViewModel.currentAddress.collectAsState()
     val context = LocalContext.current
 
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            locationViewModel.requestLocation(context)
+        }
+    }
+
     // Sync address input with detected address if location is picked
     LaunchedEffect(detectedAddress) {
         if (detectedAddress.isNotEmpty() && detectedAddress != "Address not found") {
@@ -53,14 +65,15 @@ fun ProfileSetupScreen(
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
-            when (selectedRole) {
-                UserType.FARMER -> navController.navigate(Routes.FARMER_DASHBOARD) {
-                    popUpTo(Routes.PROFILE_SETUP) { inclusive = true }
+            authViewModel.resetState()
+            if (selectedRole == UserType.FARMER) {
+                navController.navigate(Routes.FARMER_DASHBOARD) {
+                    popUpTo(Routes.WELCOME) { inclusive = true }
                 }
-                UserType.CONSUMER -> navController.navigate(Routes.CONSUMER_HOME) {
-                    popUpTo(Routes.PROFILE_SETUP) { inclusive = true }
+            } else {
+                navController.navigate(Routes.CONSUMER_HOME) {
+                    popUpTo(Routes.WELCOME) { inclusive = true }
                 }
-                else -> {}
             }
         }
     }
@@ -125,15 +138,39 @@ fun ProfileSetupScreen(
                     label = { Text("Address (City/District)") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
-                        IconButton(onClick = { locationViewModel.requestLocation(context) }) {
+                        IconButton(onClick = { 
+                            when {
+                                ContextCompat.checkSelfPermission(
+                                    context, Manifest.permission.ACCESS_FINE_LOCATION
+                                ) == PackageManager.PERMISSION_GRANTED -> {
+                                    locationViewModel.requestLocation(context)
+                                }
+                                else -> {
+                                    locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                }
+                            }
+                        }) {
                             Icon(Icons.Default.LocationOn, contentDescription = "Pick My Location", tint = PrimaryGreen)
                         }
                     }
                 )
                 TextButton(
-                    onClick = { locationViewModel.requestLocation(context) },
+                    onClick = { 
+                        when {
+                            ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED -> {
+                                locationViewModel.requestLocation(context)
+                            }
+                            else -> {
+                                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                            }
+                        }
+                    },
                     modifier = Modifier.align(Alignment.End)
                 ) {
+                    Icon(Icons.Default.LocationOn, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
                     Text("Pick My Location", color = PrimaryGreen)
                 }
             }
@@ -143,8 +180,9 @@ fun ProfileSetupScreen(
             // Submit Button
             Button(
                 onClick = {
-                    val address = Address(city = addressInput) // Simplified for now
-                    selectedRole?.let { authViewModel.saveProfile(name, it, address) }
+                    if (name.isNotBlank() && selectedRole != null) {
+                        authViewModel.saveProfile(name, selectedRole!!, addressInput)
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()

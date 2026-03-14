@@ -2,6 +2,10 @@ package com.example.hamilocalmain
 
 import android.app.Application
 import com.google.firebase.FirebaseApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Application class for Hami Local.
@@ -9,6 +13,8 @@ import com.google.firebase.FirebaseApp
  * Used as the base class for maintaining global application state.
  */
 class HamiLocalApplication : Application() {
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     // ==================== LIFECYCLE ====================
 
@@ -19,5 +25,8 @@ class HamiLocalApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
+        applicationScope.launch(Dispatchers.IO) {
+            // move all other heavy init here
+        }
     }
 }

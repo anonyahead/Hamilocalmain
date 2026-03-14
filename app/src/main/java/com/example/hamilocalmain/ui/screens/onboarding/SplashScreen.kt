@@ -19,7 +19,6 @@ import androidx.navigation.NavController
 import com.example.hamilocalmain.data.model.UserType
 import com.example.hamilocalmain.ui.navigation.Routes
 import com.example.hamilocalmain.ui.theme.PrimaryGreen
-import com.example.hamilocalmain.ui.theme.TextPrimary
 import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 
@@ -32,21 +31,28 @@ fun SplashScreen(
 
     LaunchedEffect(Unit) {
         delay(2000)
-        if (currentUser != null) {
-            when (currentUser?.userType) {
-                UserType.FARMER -> navController.navigate(Routes.FARMER_DASHBOARD) {
-                    popUpTo(Routes.SPLASH) { inclusive = true }
-                }
-                UserType.CONSUMER -> navController.navigate(Routes.CONSUMER_HOME) {
-                    popUpTo(Routes.SPLASH) { inclusive = true }
-                }
-                else -> navController.navigate(Routes.WELCOME) {
-                    popUpTo(Routes.SPLASH) { inclusive = true }
-                }
-            }
-        } else {
+        val firebaseUser = com.google.firebase.auth.FirebaseAuth
+            .getInstance().currentUser
+        if (firebaseUser == null) {
             navController.navigate(Routes.WELCOME) {
                 popUpTo(Routes.SPLASH) { inclusive = true }
+            }
+        } else {
+            // Firebase says logged in — go to home, 
+            // profile loads async in background
+            val profile = currentUser
+            when (profile?.userType) {
+                com.example.hamilocalmain.data.model.UserType.FARMER ->
+                    navController.navigate(Routes.FARMER_DASHBOARD) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                com.example.hamilocalmain.data.model.UserType.CONSUMER ->
+                    navController.navigate(Routes.CONSUMER_HOME) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                else -> navController.navigate(Routes.PROFILE_SETUP) {
+                    popUpTo(Routes.SPLASH) { inclusive = true }
+                }
             }
         }
     }

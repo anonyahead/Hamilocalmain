@@ -26,6 +26,7 @@ import java.util.Locale
 /**
  * Displays a list of the consumer's past and current orders.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderHistoryScreen(
     navController: NavController,

@@ -3,6 +3,7 @@ package com.example.hamilocalmain.data.firebase
 import android.app.Activity
 import android.content.Context
 import com.example.hamilocalmain.data.model.User
+import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.PhoneAuthCredential
@@ -31,21 +32,8 @@ class FirebaseAuthManager(private val context: Context) {
         val options = PhoneAuthOptions.newBuilder(auth)
             .setPhoneNumber(phone)
             .setTimeout(60L, TimeUnit.SECONDS)
+            .requireSmsValidation(false)
             .setActivity(activity)
-            .setCallbacks(callbacks)
-            .build()
-        PhoneAuthProvider.verifyPhoneNumber(options)
-    }
-
-    /**
-     * Sends OTP to the given phone number using the internal context.
-     * Note: This might fail if the context is not an Activity.
-     */
-    fun sendOtp(phone: String, callbacks: PhoneAuthProvider.OnVerificationStateChangedCallbacks) {
-        val options = PhoneAuthOptions.newBuilder(auth)
-            .setPhoneNumber(phone)
-            .setTimeout(60L, TimeUnit.SECONDS)
-            .setActivity(context as Activity)
             .setCallbacks(callbacks)
             .build()
         PhoneAuthProvider.verifyPhoneNumber(options)
@@ -57,6 +45,17 @@ class FirebaseAuthManager(private val context: Context) {
     suspend fun verifyOtp(code: String, verificationId: String): Result<FirebaseUser> {
         return try {
             val credential = PhoneAuthProvider.getCredential(verificationId, code)
+            signInWithCredential(credential)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Signs in with the given credential.
+     */
+    suspend fun signInWithCredential(credential: AuthCredential): Result<FirebaseUser> {
+        return try {
             val result = auth.signInWithCredential(credential).await()
             val user = result.user
             if (user != null) {
@@ -74,9 +73,11 @@ class FirebaseAuthManager(private val context: Context) {
      */
     suspend fun saveUserProfile(user: User): Result<Unit> {
         return try {
+            val uid = auth.currentUser?.uid ?: return Result.failure(Exception("User not logged in"))
+            val userWithId = user.copy(id = uid)
             firestore.collection("users")
-                .document(user.id)
-                .set(user)
+                .document(uid)
+                .set(userWithId)
                 .await()
             Result.success(Unit)
         } catch (e: Exception) {
