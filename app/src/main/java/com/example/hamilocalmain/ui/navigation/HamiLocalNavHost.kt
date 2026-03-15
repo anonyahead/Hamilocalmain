@@ -22,6 +22,7 @@ import com.example.hamilocalmain.ui.screens.onboarding.*
 import com.example.hamilocalmain.ui.screens.shared.*
 import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
 import com.example.hamilocalmain.ui.viewmodel.ChatViewModel
+import com.example.hamilocalmain.ui.viewmodel.CurrencyViewModel
 import com.example.hamilocalmain.ui.viewmodel.LocationViewModel
 import com.example.hamilocalmain.ui.viewmodel.OrderViewModel
 import com.example.hamilocalmain.ui.viewmodel.ProductViewModel
@@ -52,14 +53,19 @@ object Routes {
     const val SETTINGS = "settings"
     const val RATING = "rating/{orderId}/{farmerName}"
     const val CHAT_LIST = "chat_list"
-    const val CHAT = "chat/{threadId}"
+    const val CHAT = "chat/{threadId}/{otherUserName}"
 
     fun phoneVerification(phoneNumber: String) = "phone_verification/$phoneNumber"
     fun productDetail(id: String) = "product_detail/$id"
     fun orderDetail(id: String) = "order_detail/$id"
-    fun chat(id: String) = "chat/$id"
-    fun payment(orderId: String, amount: Double, farmerName: String, pickupAddress: String) =
-        "payment/$orderId/$amount/$farmerName/$pickupAddress"
+    fun chat(id: String, otherUserName: String) = "chat/$id/$otherUserName"
+    
+    fun payment(orderId: String, amount: Double, farmerName: String, pickupAddress: String): String {
+        val encodedFarmerName = java.net.URLEncoder.encode(farmerName, "UTF-8")
+        val encodedPickupAddress = java.net.URLEncoder.encode(pickupAddress, "UTF-8")
+        return "payment/$orderId/$amount/$encodedFarmerName/$encodedPickupAddress"
+    }
+    
     fun rating(orderId: String, farmerName: String) = "rating/$orderId/$farmerName"
 }
 
@@ -68,13 +74,14 @@ object Routes {
  */
 @Composable
 fun HamiLocalNavHost(
+    modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     authViewModel: AuthViewModel = viewModel(),
     productViewModel: ProductViewModel = viewModel(),
     orderViewModel: OrderViewModel = viewModel(),
     chatViewModel: ChatViewModel = viewModel(),
     locationViewModel: LocationViewModel = viewModel(),
-    modifier: Modifier = Modifier
+    currencyViewModel: CurrencyViewModel = viewModel()
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
 
@@ -123,13 +130,15 @@ fun HamiLocalNavHost(
                     productViewModel = productViewModel,
                     orderViewModel = orderViewModel,
                     locationViewModel = locationViewModel,
-                    authViewModel = authViewModel
+                    authViewModel = authViewModel,
+                    currencyViewModel = currencyViewModel
                 )
             }
             composable(Routes.BROWSE_PRODUCTS) {
                 BrowseProductsScreen(
                     navController = navController,
-                    productViewModel = productViewModel
+                    productViewModel = productViewModel,
+                    currencyViewModel = currencyViewModel
                 )
             }
             composable(
@@ -141,14 +150,17 @@ fun HamiLocalNavHost(
                     productId = productId,
                     navController = navController,
                     productViewModel = productViewModel,
-                    orderViewModel = orderViewModel
+                    orderViewModel = orderViewModel,
+                    authViewModel = authViewModel,
+                    currencyViewModel = currencyViewModel
                 )
             }
             composable(Routes.CART) {
                 CartScreen(
                     navController = navController,
                     orderViewModel = orderViewModel,
-                    authViewModel = authViewModel
+                    authViewModel = authViewModel,
+                    currencyViewModel = currencyViewModel
                 )
             }
             composable(Routes.ORDER_HISTORY) {
@@ -172,15 +184,18 @@ fun HamiLocalNavHost(
             ) { backStackEntry ->
                 val orderId = backStackEntry.arguments?.getString("orderId") ?: ""
                 val totalAmount = backStackEntry.arguments?.getFloat("totalAmount")?.toDouble() ?: 0.0
-                val farmerName = backStackEntry.arguments?.getString("farmerName") ?: ""
-                val pickupAddress = backStackEntry.arguments?.getString("pickupAddress") ?: ""
+                val farmerName = backStackEntry.arguments?.getString("farmerName")
+                    ?.let { java.net.URLDecoder.decode(it, "UTF-8") } ?: ""
+                val pickupAddress = backStackEntry.arguments?.getString("pickupAddress")
+                    ?.let { java.net.URLDecoder.decode(it, "UTF-8") } ?: ""
                 PaymentScreen(
                     navController = navController,
                     orderId = orderId,
                     totalAmount = totalAmount,
                     farmerName = farmerName,
                     pickupAddress = pickupAddress,
-                    orderViewModel = orderViewModel
+                    orderViewModel = orderViewModel,
+                    currencyViewModel = currencyViewModel
                 )
             }
 
@@ -192,7 +207,8 @@ fun HamiLocalNavHost(
                     authViewModel = authViewModel,
                     onNavigateToShortageManagement = {
                         navController.navigate(Routes.SHORTAGE_MANAGEMENT)
-                    }
+                    },
+                    currencyViewModel = currencyViewModel
                 )
             }
             composable(Routes.MANAGE_PRODUCTS) {
@@ -205,7 +221,8 @@ fun HamiLocalNavHost(
             composable(Routes.ADD_PRODUCT) {
                 AddProductScreen(
                     navController = navController,
-                    productViewModel = productViewModel
+                    productViewModel = productViewModel,
+                    authViewModel = authViewModel
                 )
             }
             composable(Routes.FARMER_ORDERS) {
@@ -219,7 +236,8 @@ fun HamiLocalNavHost(
                 ShortageManagementScreen(
                     navController = navController,
                     orderViewModel = orderViewModel,
-                    productViewModel = productViewModel
+                    productViewModel = productViewModel,
+                    authViewModel = authViewModel
                 )
             }
 
@@ -231,16 +249,23 @@ fun HamiLocalNavHost(
                 OrderDetailScreen(
                     orderId = orderId,
                     navController = navController,
-                    orderViewModel = orderViewModel
+                    orderViewModel = orderViewModel,
+                    authViewModel = authViewModel,
+                    currencyViewModel = currencyViewModel
                 )
             }
             composable(Routes.MAP) {
-                MapScreen(locationViewModel = locationViewModel)
+                MapScreen(
+                    locationViewModel = locationViewModel,
+                    navController = navController,
+                    productViewModel = productViewModel
+                )
             }
             composable(Routes.SETTINGS) {
                 SettingsScreen(
                     navController = navController,
-                    authViewModel = authViewModel
+                    authViewModel = authViewModel,
+                    currencyViewModel = currencyViewModel
                 )
             }
             composable(
@@ -263,16 +288,22 @@ fun HamiLocalNavHost(
             composable(Routes.CHAT_LIST) {
                 ChatListScreen(
                     navController = navController,
-                    chatViewModel = chatViewModel
+                    chatViewModel = chatViewModel,
+                    authViewModel = authViewModel
                 )
             }
             composable(
                 Routes.CHAT,
-                arguments = listOf(navArgument("threadId") { type = NavType.StringType })
+                arguments = listOf(
+                    navArgument("threadId") { type = NavType.StringType },
+                    navArgument("otherUserName") { type = NavType.StringType }
+                )
             ) { backStackEntry ->
                 val threadId = backStackEntry.arguments?.getString("threadId") ?: ""
+                val otherUserName = backStackEntry.arguments?.getString("otherUserName") ?: "Chat"
                 ChatScreen(
                     threadId = threadId,
+                    otherUserName = otherUserName,
                     navController = navController,
                     chatViewModel = chatViewModel,
                     authViewModel = authViewModel

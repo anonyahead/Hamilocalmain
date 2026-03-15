@@ -32,7 +32,17 @@ class OrderRepository(private val firestore: FirebaseFirestore = FirebaseFiresto
         return try {
             val docRef = ordersCollection.document()
             val orderWithId = order.copy(id = docRef.id)
-            docRef.set(orderWithId).await()
+            
+            // Save order AND update pendingOrderQuantity on each product in one batch
+            firestore.runBatch { batch ->
+                batch.set(docRef, orderWithId)
+                for (item in order.items) {
+                    val productRef = productsCollection.document(item.productId)
+                    batch.update(productRef, "pendingOrderQuantity", 
+                        com.google.firebase.firestore.FieldValue.increment(item.quantity))
+                }
+            }.await()
+            
             Result.success(orderWithId)
         } catch (e: Exception) {
             Result.failure(e)
@@ -69,7 +79,20 @@ class OrderRepository(private val firestore: FirebaseFirestore = FirebaseFiresto
      */
     suspend fun updateOrderStatus(orderId: String, status: OrderStatus): Result<Unit> {
         return try {
-            ordersCollection.document(orderId).update("status", status).await()
+            val orderSnap = ordersCollection.document(orderId).get().await()
+            val order = orderSnap.toObject(Order::class.java)
+            
+            firestore.runBatch { batch ->
+                batch.update(ordersCollection.document(orderId), "status", status)
+                // When cancelled, release the pending quantity back
+                if (status == OrderStatus.CANCELLED && order != null) {
+                    for (item in order.items) {
+                        val productRef = productsCollection.document(item.productId)
+                        batch.update(productRef, "pendingOrderQuantity",
+                            com.google.firebase.firestore.FieldValue.increment(-item.quantity))
+                    }
+                }
+            }.await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

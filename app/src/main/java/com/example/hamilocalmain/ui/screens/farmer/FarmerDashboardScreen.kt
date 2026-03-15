@@ -2,21 +2,26 @@ package com.example.hamilocalmain.ui.screens.farmer
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.hamilocalmain.data.model.OrderStatus
 import com.example.hamilocalmain.ui.navigation.Routes
+import com.example.hamilocalmain.ui.theme.SecondaryOrange
+import com.example.hamilocalmain.ui.theme.TextSecondary
 import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
+import com.example.hamilocalmain.ui.viewmodel.CurrencyViewModel
+import com.example.hamilocalmain.ui.viewmodel.OrderState
 import com.example.hamilocalmain.ui.viewmodel.OrderViewModel
+import com.example.hamilocalmain.ui.viewmodel.ProductState
 import com.example.hamilocalmain.ui.viewmodel.ProductViewModel
+import java.util.Locale
 
 /**
  * Farmer's main dashboard. onNavigateToShortageManagement is called by the Shortage Management card.
@@ -28,9 +33,33 @@ fun FarmerDashboardScreen(
     productViewModel: ProductViewModel,
     orderViewModel: OrderViewModel,
     authViewModel: AuthViewModel,
+    currencyViewModel: CurrencyViewModel,
     onNavigateToShortageManagement: () -> Unit = {}
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
+
+    // 1. Add LaunchedEffect(currentUser) to load data
+    LaunchedEffect(currentUser) {
+        currentUser?.id?.let {
+            productViewModel.loadFarmerProducts(it)
+            orderViewModel.loadFarmerOrders(it)
+        }
+    }
+
+    // 2. Collect states
+    val farmerProductsState by productViewModel.farmerProductsState.collectAsState()
+    val farmerOrdersState by orderViewModel.farmerOrdersState.collectAsState()
+
+    // 3. Replace hardcoded values with calculated state values
+    val productCount = (farmerProductsState as? ProductState.Success)?.products?.size ?: 0
+    
+    val activeOrdersCount = (farmerOrdersState as? OrderState.Success)?.orders?.count {
+        it.status == OrderStatus.PENDING || it.status == OrderStatus.CONFIRMED
+    } ?: 0
+
+    val totalEarnings = (farmerOrdersState as? OrderState.Success)?.orders?.filter {
+        it.status == OrderStatus.COMPLETED
+    }?.sumOf { it.farmerEarnings } ?: 0.0
 
     Scaffold(
         topBar = {
@@ -47,6 +76,35 @@ fun FarmerDashboardScreen(
             FloatingActionButton(onClick = { navController.navigate(Routes.ADD_PRODUCT) }) {
                 Icon(Icons.Default.Add, contentDescription = "Add Product")
             }
+        },
+        bottomBar = {
+            // Item 6: Add BottomNavigationBar to FarmerDashboardScreen
+            NavigationBar {
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Home, null) },
+                    label = { Text("Dashboard") },
+                    selected = true,
+                    onClick = {}
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Receipt, null) },
+                    label = { Text("Orders") },
+                    selected = false,
+                    onClick = { navController.navigate(Routes.FARMER_ORDERS) }
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.AutoMirrored.Filled.Chat, null) },
+                    label = { Text("Messages") },
+                    selected = false,
+                    onClick = { navController.navigate(Routes.CHAT_LIST) }
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Settings, null) },
+                    label = { Text("Settings") },
+                    selected = false,
+                    onClick = { navController.navigate(Routes.SETTINGS) }
+                )
+            }
         }
     ) { padding ->
         Column(
@@ -62,9 +120,21 @@ fun FarmerDashboardScreen(
 
             // Stat Cards
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatCard(title = "My Products", value = "12", modifier = Modifier.weight(1f))
-                StatCard(title = "Active Orders", value = "5", modifier = Modifier.weight(1f))
-                StatCard(title = "Earnings", value = "NPR 5,420", modifier = Modifier.weight(1f))
+                StatCard(
+                    title = "My Available Products",
+                    value = productCount.toString(), 
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    title = "Active Orders", 
+                    value = activeOrdersCount.toString(), 
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    title = "Earnings", 
+                    value = currencyViewModel.format(totalEarnings),
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -84,7 +154,31 @@ fun FarmerDashboardScreen(
             
             // Recent Orders
             Text("Recent Orders", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            // Placeholder for recent orders list
+            
+            // Item 7: Replace placeholder with actual orders list
+            when (farmerOrdersState) {
+                is OrderState.Loading -> CircularProgressIndicator()
+                is OrderState.Success -> {
+                    val recentOrders = (farmerOrdersState as OrderState.Success).orders.take(3)
+                    if (recentOrders.isEmpty()) {
+                        Text("No recent orders", color = TextSecondary)
+                    } else {
+                        recentOrders.forEach { order ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                onClick = { navController.navigate(Routes.orderDetail(order.id)) }
+                            ) {
+                                Column(Modifier.padding(12.dp)) {
+                                    Text(order.consumerName, fontWeight = FontWeight.Bold)
+                                    Text(currencyViewModel.format(order.totalAmount), color = SecondaryOrange)
+                                    Text(order.status.name)
+                                }
+                            }
+                        }
+                    }
+                }
+                is OrderState.Error -> Text((farmerOrdersState as OrderState.Error).message)
+            }
         }
     }
 }

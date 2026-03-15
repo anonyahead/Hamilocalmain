@@ -1,5 +1,9 @@
 package com.example.hamilocalmain.ui.screens.consumer
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,23 +15,22 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.hamilocalmain.data.model.ProductCategory
 import com.example.hamilocalmain.ui.navigation.Routes
 import com.example.hamilocalmain.ui.theme.PrimaryGreen
-import com.example.hamilocalmain.ui.theme.TextPrimary
 import com.example.hamilocalmain.ui.theme.TextSecondary
 import com.example.hamilocalmain.ui.viewmodel.*
 
@@ -41,21 +44,40 @@ fun ConsumerHomeScreen(
     productViewModel: ProductViewModel,
     orderViewModel: OrderViewModel,
     locationViewModel: LocationViewModel,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    currencyViewModel: CurrencyViewModel
 ) {
+    val context = LocalContext.current
     val currentUser by authViewModel.currentUser.collectAsState()
     val nearbyProductsState by productViewModel.nearbyProductsState.collectAsState()
     val cartItems by orderViewModel.cartItems.collectAsState()
     val currentLocation by locationViewModel.currentLocation.collectAsState()
 
-    // Load nearby products when location is available
-    LaunchedEffect(currentLocation) {
-        currentLocation?.let {
-            productViewModel.loadNearbyProducts(it.latitude, it.longitude, 10.0)
-        } ?: run {
-            // Default location for testing if not available, or request it
-            // locationViewModel.requestLocation(context) 
+    var selectedCategory by remember { mutableStateOf<ProductCategory?>(null) }
+    var selectedRadius by remember { mutableDoubleStateOf(10.0) }  // 0.0 = show all
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) locationViewModel.requestLocation(context)
+        else productViewModel.loadNearbyProducts(0.0, 0.0, 10.0) // fallback
+    }
+
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            locationViewModel.requestLocation(context)
+        } else {
+            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
+    }
+
+    // Load nearby products when location or radius changes
+    LaunchedEffect(currentLocation, selectedRadius) {
+        val lat = currentLocation?.latitude ?: 0.0
+        val lng = currentLocation?.longitude ?: 0.0
+        productViewModel.loadNearbyProducts(lat, lng, if (selectedRadius == 0.0) 500.0 else selectedRadius)
     }
 
     Scaffold(
@@ -68,8 +90,11 @@ fun ConsumerHomeScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: Navigate to Notifications */ }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                    IconButton(onClick = { navController.navigate(Routes.SETTINGS) }) {
+                        Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+                    }
+                    IconButton(onClick = { navController.navigate(Routes.CHAT_LIST) }) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Messages")
                     }
                     BadgedBox(
                         badge = {
@@ -85,6 +110,34 @@ fun ConsumerHomeScreen(
                     }
                 }
             )
+        },
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Home, null) },
+                    label = { Text("Home") },
+                    selected = true,
+                    onClick = {}
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.ShoppingBag, null) },
+                    label = { Text("Orders") },
+                    selected = false,
+                    onClick = { navController.navigate(Routes.ORDER_HISTORY) }
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.AutoMirrored.Filled.Chat, null) },
+                    label = { Text("Messages") },
+                    selected = false,
+                    onClick = { navController.navigate(Routes.CHAT_LIST) }
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Map, null) },
+                    label = { Text("Map") },
+                    selected = false,
+                    onClick = { navController.navigate(Routes.MAP) }
+                )
+            }
         }
     ) { padding ->
         LazyVerticalGrid(
@@ -106,19 +159,36 @@ fun ConsumerHomeScreen(
                 SearchBar(onClick = { navController.navigate(Routes.BROWSE_PRODUCTS) })
             }
 
+            // Radius Filter Chips
+            item(span = { GridItemSpan(2) }) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 4.dp)
+                ) {
+                    items(listOf(5.0, 10.0, 20.0, 0.0)) { radius ->
+                        FilterChip(
+                            selected = selectedRadius == radius,
+                            onClick = {
+                                selectedRadius = radius
+                            },
+                            label = { Text(if (radius == 0.0) "All" else "${radius.toInt()} km") }
+                        )
+                    }
+                }
+            }
+
             // Categories
             item(span = { GridItemSpan(2) }) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 16.dp)
+                    contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     items(ProductCategory.values()) { category ->
                         CategoryChip(
                             category = category,
-                            isSelected = false, // Home shows all, clicking one can go to Browse with filter
-                            onClick = { 
-                                // Navigate to browse products with this category selected
-                                navController.navigate(Routes.BROWSE_PRODUCTS) 
+                            isSelected = selectedCategory == category,
+                            onClick = {
+                                selectedCategory = if (selectedCategory == category) null else category
                             }
                         )
                     }
@@ -127,19 +197,33 @@ fun ConsumerHomeScreen(
 
             // Nearby Products Section Header
             item(span = { GridItemSpan(2) }) {
-                Text(
-                    text = "Nearby Products",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Nearby Products",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    TextButton(onClick = {
+                        selectedRadius = 0.0
+                        selectedCategory = null
+                        val lat = currentLocation?.latitude ?: 0.0
+                        val lng = currentLocation?.longitude ?: 0.0
+                        productViewModel.loadNearbyProducts(lat, lng, 500.0)
+                    }) {
+                        Text("Show All", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
             }
 
             // Nearby Products Grid
             when (nearbyProductsState) {
                 is ProductState.Loading -> {
                     items(4) {
-                        // Placeholder for shimmer
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -150,7 +234,13 @@ fun ConsumerHomeScreen(
                     }
                 }
                 is ProductState.Success -> {
-                    val products = (nearbyProductsState as ProductState.Success).products
+                    val allProducts = (nearbyProductsState as ProductState.Success).products
+                    val products = if (selectedCategory != null) {
+                        allProducts.filter { it.category == selectedCategory }
+                    } else {
+                        allProducts
+                    }
+
                     if (products.isEmpty()) {
                         item(span = { GridItemSpan(2) }) {
                             Box(
@@ -159,18 +249,32 @@ fun ConsumerHomeScreen(
                                     .padding(vertical = 32.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "No products nearby. Increase your search radius.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = TextSecondary
-                                )
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = if (selectedCategory != null)
+                                            "No ${selectedCategory?.name?.lowercase()} nearby."
+                                        else
+                                            "No products nearby.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = TextSecondary
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    TextButton(onClick = {
+                                        selectedCategory = null
+                                        selectedRadius = 0.0
+                                        productViewModel.loadNearbyProducts(0.0, 0.0, 500.0)
+                                    }) {
+                                        Text("Show All Products")
+                                    }
+                                }
                             }
                         }
                     } else {
                         items(products) { product ->
                             ProductCard(
                                 product = product,
-                                onClick = { navController.navigate(Routes.productDetail(product.id)) }
+                                onClick = { navController.navigate(Routes.productDetail(product.id)) },
+                                currencyViewModel = currencyViewModel
                             )
                         }
                     }
@@ -235,7 +339,7 @@ private fun SearchBar(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        enabled = false, // Clicking the disabled field triggers onClick
+        enabled = false,
         placeholder = { Text("Search for fresh products...") },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         shape = RoundedCornerShape(12.dp),

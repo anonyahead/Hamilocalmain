@@ -24,8 +24,9 @@ import com.example.hamilocalmain.data.model.ProductStatus
 import com.example.hamilocalmain.ui.navigation.Routes
 import com.example.hamilocalmain.ui.theme.AccentTeal
 import com.example.hamilocalmain.ui.theme.TextSecondary
+import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
+import com.example.hamilocalmain.ui.viewmodel.CurrencyViewModel
 import com.example.hamilocalmain.ui.viewmodel.OrderViewModel
-import com.example.hamilocalmain.ui.viewmodel.ProductState
 import com.example.hamilocalmain.ui.viewmodel.ProductViewModel
 import kotlinx.coroutines.launch
 
@@ -40,11 +41,18 @@ fun ProductDetailScreen(
     productId: String,
     navController: NavController,
     productViewModel: ProductViewModel,
-    orderViewModel: OrderViewModel
+    orderViewModel: OrderViewModel,
+    authViewModel: AuthViewModel,
+    currencyViewModel: CurrencyViewModel
 ) {
     // ==================== STATE ====================
-    val productsState by productViewModel.nearbyProductsState.collectAsState()
-    val product = (productsState as? ProductState.Success)?.products?.find { it.id == productId }
+    val product by productViewModel.selectedProduct.collectAsState()
+    
+    LaunchedEffect(productId) {
+        productViewModel.loadProduct(productId)
+    }
+    
+    val currentUser by authViewModel.currentUser.collectAsState()
     
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -74,6 +82,7 @@ fun ProductDetailScreen(
                 CircularProgressIndicator()
             }
         } else {
+            val p = product!!
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -98,11 +107,11 @@ fun ProductDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = product.name,
+                            text = p.name,
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        if (product.isOrganic) {
+                        if (p.isOrganic) {
                             SuggestionChip(
                                 onClick = { },
                                 label = { Text("Organic", fontSize = 12.sp) },
@@ -114,16 +123,17 @@ fun ProductDetailScreen(
                         }
                     }
 
-                    PriceTag(price = product.price, unit = product.unit)
+                    PriceTag(price = p.price, unit = p.unit, currencyViewModel = currencyViewModel)
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Farmer: ${product.farmerName}",
+                        text = "Farmer: ${p.farmerName}",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { 
-                            navController.navigate(Routes.chat(product.farmerId)) 
+                            val threadId = listOf(currentUser?.id ?: "", p.farmerId).sorted().joinToString("_")
+                            navController.navigate(Routes.chat(threadId, p.farmerName)) 
                         }
                     )
 
@@ -135,14 +145,14 @@ fun ProductDetailScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = product.description,
+                        text = p.description,
                         style = MaterialTheme.typography.bodyLarge,
                         color = TextSecondary
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    if (product.status != ProductStatus.OUT_OF_STOCK) {
+                    if (p.status != ProductStatus.OUT_OF_STOCK) {
                         QuantitySelector(
                             quantity = quantity,
                             onQuantityChange = { quantity = it }
@@ -152,7 +162,7 @@ fun ProductDetailScreen(
 
                         Button(
                             onClick = {
-                                orderViewModel.addToCart(product, quantity)
+                                orderViewModel.addToCart(p, quantity)
                                 scope.launch {
                                     snackbarHostState.showSnackbar("Added to cart!")
                                 }
@@ -165,7 +175,10 @@ fun ProductDetailScreen(
                     }
 
                     OutlinedButton(
-                        onClick = { navController.navigate(Routes.chat(product.farmerId)) },
+                        onClick = { 
+                            val threadId = listOf(currentUser?.id ?: "", p.farmerId).sorted().joinToString("_")
+                            navController.navigate(Routes.chat(threadId, p.farmerName))
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 12.dp),

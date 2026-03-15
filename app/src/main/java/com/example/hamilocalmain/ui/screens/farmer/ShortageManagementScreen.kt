@@ -17,6 +17,7 @@ import androidx.navigation.NavController
 import com.example.hamilocalmain.data.model.AllocationResult
 import com.example.hamilocalmain.ui.theme.PrimaryGreen
 import com.example.hamilocalmain.ui.theme.TextSecondary
+import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
 import com.example.hamilocalmain.ui.viewmodel.ProductState
 import com.example.hamilocalmain.ui.viewmodel.ProductViewModel
 import com.example.hamilocalmain.ui.viewmodel.OrderViewModel
@@ -29,12 +30,21 @@ import com.example.hamilocalmain.ui.viewmodel.OrderViewModel
 fun ShortageManagementScreen(
     navController: NavController,
     orderViewModel: OrderViewModel,
-    productViewModel: ProductViewModel
+    productViewModel: ProductViewModel,
+    authViewModel: AuthViewModel
 ) {
     // ==================== STATE ====================
+    val currentUser by authViewModel.currentUser.collectAsState()
     val productState by productViewModel.farmerProductsState.collectAsState()
     val isAllocating by orderViewModel.isAllocating.collectAsState()
     val allocationResults by orderViewModel.allocationResults.collectAsState()
+
+    // Load data when user is available
+    LaunchedEffect(currentUser) {
+        currentUser?.id?.let {
+            productViewModel.loadFarmerProducts(it)
+        }
+    }
 
     // ==================== UI LAYOUT ====================
     Scaffold(

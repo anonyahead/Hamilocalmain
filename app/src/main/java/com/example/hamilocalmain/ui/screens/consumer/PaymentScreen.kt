@@ -27,6 +27,7 @@ import com.example.hamilocalmain.ui.navigation.Routes
 import com.example.hamilocalmain.ui.theme.SecondaryOrange
 import com.example.hamilocalmain.ui.theme.Success
 import com.example.hamilocalmain.ui.theme.TextSecondary
+import com.example.hamilocalmain.ui.viewmodel.CurrencyViewModel
 import com.example.hamilocalmain.ui.viewmodel.OrderViewModel
 import kotlinx.coroutines.delay
 
@@ -37,19 +38,21 @@ fun PaymentScreen(
     totalAmount: Double,
     farmerName: String,
     pickupAddress: String,
-    orderViewModel: OrderViewModel
+    orderViewModel: OrderViewModel,
+    currencyViewModel: CurrencyViewModel
 ) {
     var showSuccessView by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
 
     if (showSuccessView) {
-        PaymentSuccessView(totalAmount, navController)
+        PaymentSuccessView(totalAmount, navController, currencyViewModel)
     } else {
         PaymentConfirmView(
             totalAmount = totalAmount,
             farmerName = farmerName,
             pickupAddress = pickupAddress,
             isLoading = isLoading,
+            currencyViewModel = currencyViewModel,
             onBack = { navController.popBackStack() },
             onConfirm = {
                 isLoading = true
@@ -72,6 +75,7 @@ private fun PaymentConfirmView(
     farmerName: String,
     pickupAddress: String,
     isLoading: Boolean,
+    currencyViewModel: CurrencyViewModel,
     onBack: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -105,7 +109,7 @@ private fun PaymentConfirmView(
                 ) {
                     Text("Amount Due", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        text = "NPR ${totalAmount.toInt()}",
+                        text = currencyViewModel.format(totalAmount),
                         style = MaterialTheme.typography.displayLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -161,7 +165,7 @@ private fun PaymentConfirmView(
  * Success view displayed after the order is confirmed.
  */
 @Composable
-private fun PaymentSuccessView(totalAmount: Double, navController: NavController) {
+private fun PaymentSuccessView(totalAmount: Double, navController: NavController, currencyViewModel: CurrencyViewModel) {
     var visible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -203,7 +207,7 @@ private fun PaymentSuccessView(totalAmount: Double, navController: NavController
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "You'll pay NPR ${totalAmount.toInt()} when you pick up",
+                text = "You'll pay ${currencyViewModel.format(totalAmount)} when you pick up",
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary
             )

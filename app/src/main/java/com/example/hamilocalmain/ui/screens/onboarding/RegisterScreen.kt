@@ -224,7 +224,7 @@ fun RegisterScreen(
                         .fillMaxWidth()
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = SecondaryOrange),
-                    enabled = phoneNumber.isNotEmpty() && authState !is AuthState.Loading,
+                    enabled = phoneNumber.length == 10 && authState !is AuthState.Loading,
                     shape = MaterialTheme.shapes.medium
                 ) {
                     if (authState is AuthState.Loading) {

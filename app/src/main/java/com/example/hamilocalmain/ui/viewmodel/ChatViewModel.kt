@@ -3,6 +3,7 @@ package com.example.hamilocalmain.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hamilocalmain.data.firebase.ChatRepository
+import com.example.hamilocalmain.data.model.ChatThread
 import com.example.hamilocalmain.data.model.Message
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,8 +19,19 @@ class ChatViewModel(private val repository: ChatRepository = ChatRepository()) :
     private val _messagesState = MutableStateFlow<List<Message>>(emptyList())
     val messagesState: StateFlow<List<Message>> = _messagesState.asStateFlow()
 
+    private val _threadsState = MutableStateFlow<List<ChatThread>>(emptyList())
+    val threadsState: StateFlow<List<ChatThread>> = _threadsState.asStateFlow()
+
     private val _unreadCount = MutableStateFlow(0)
     val unreadCount: StateFlow<Int> = _unreadCount.asStateFlow()
+
+    fun loadUserThreads(userId: String) {
+        viewModelScope.launch {
+            repository.getUserThreadsFlow(userId)
+                .catch { _threadsState.value = emptyList() }
+                .collect { threads -> _threadsState.value = threads }
+        }
+    }
 
     /**
      * Loads live messages for a specific chat thread.

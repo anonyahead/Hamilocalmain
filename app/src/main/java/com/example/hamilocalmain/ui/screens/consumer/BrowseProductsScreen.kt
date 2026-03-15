@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.hamilocalmain.ui.navigation.Routes
+import com.example.hamilocalmain.ui.viewmodel.CurrencyViewModel
 import com.example.hamilocalmain.ui.viewmodel.ProductState
 import com.example.hamilocalmain.ui.viewmodel.ProductViewModel
 
@@ -26,7 +27,8 @@ import com.example.hamilocalmain.ui.viewmodel.ProductViewModel
 @Composable
 fun BrowseProductsScreen(
     navController: NavController,
-    productViewModel: ProductViewModel
+    productViewModel: ProductViewModel,
+    currencyViewModel: CurrencyViewModel
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedRadius by remember { mutableDoubleStateOf(10.0) }
@@ -34,9 +36,8 @@ fun BrowseProductsScreen(
 
     // Reload products whenever the selected radius changes
     LaunchedEffect(selectedRadius) {
-        // Assuming location is known or using default for nearby logic
-        // In a real app, coordinates would come from a LocationViewModel
-        productViewModel.loadNearbyProducts(27.7172, 85.3240, selectedRadius)
+        // Use 0,0 as coordinates to show all products (as per repository fallback logic)
+        productViewModel.loadNearbyProducts(0.0, 0.0, selectedRadius)
     }
 
     Scaffold(
@@ -101,7 +102,8 @@ fun BrowseProductsScreen(
                         items(products) { product ->
                             ProductCard(
                                 product = product,
-                                onClick = { navController.navigate(Routes.productDetail(product.id)) }
+                                onClick = { navController.navigate(Routes.productDetail(product.id)) },
+                                currencyViewModel = currencyViewModel
                             )
                         }
                     }

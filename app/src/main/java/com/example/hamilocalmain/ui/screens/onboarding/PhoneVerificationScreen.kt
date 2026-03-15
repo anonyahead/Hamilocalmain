@@ -1,6 +1,7 @@
 package com.example.hamilocalmain.ui.screens.onboarding
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
@@ -181,7 +182,8 @@ private fun OtpInputField(
                 modifier = Modifier
                     .size(48.dp)
                     .focusRequester(focusRequesters[index])
-                    .border(1.dp, Color.Gray, MaterialTheme.shapes.small),
+                    .border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
+                    .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.small),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 decorationBox = { innerTextField ->
                     Box(contentAlignment = Alignment.Center) {
@@ -192,7 +194,8 @@ private fun OtpInputField(
                 textStyle = LocalTextStyle.current.copy(
                     textAlign = TextAlign.Center,
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             )
         }

@@ -18,6 +18,7 @@ import androidx.navigation.NavController
 import com.example.hamilocalmain.data.model.Product
 import com.example.hamilocalmain.data.model.ProductCategory
 import com.example.hamilocalmain.data.model.UnitType
+import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
 import com.example.hamilocalmain.ui.viewmodel.ProductViewModel
 
 /**
@@ -27,8 +28,12 @@ import com.example.hamilocalmain.ui.viewmodel.ProductViewModel
 @Composable
 fun AddProductScreen(
     navController: NavController,
-    productViewModel: ProductViewModel
+    productViewModel: ProductViewModel,
+    authViewModel: AuthViewModel
 ) {
+    // 1. Get current user
+    val currentUser by authViewModel.currentUser.collectAsState()
+
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
@@ -179,7 +184,10 @@ fun AddProductScreen(
                         availableQuantity = quantity.toDoubleOrNull() ?: 0.0,
                         unit = selectedUnit,
                         category = selectedCategory,
-                        isOrganic = isOrganic
+                        isOrganic = isOrganic,
+                        // 2. Set farmer details from current user
+                        farmerId = currentUser?.id ?: "",
+                        farmerName = currentUser?.name ?: ""
                     )
                     productViewModel.addProduct(product)
                     navController.popBackStack()

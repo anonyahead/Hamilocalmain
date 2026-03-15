@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Remove
@@ -18,6 +19,7 @@ import com.example.hamilocalmain.ui.navigation.Routes
 import com.example.hamilocalmain.ui.theme.TextSecondary
 import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
 import com.example.hamilocalmain.ui.viewmodel.CartItem
+import com.example.hamilocalmain.ui.viewmodel.CurrencyViewModel
 import com.example.hamilocalmain.ui.viewmodel.OrderViewModel
 
 /**
@@ -29,7 +31,8 @@ import com.example.hamilocalmain.ui.viewmodel.OrderViewModel
 fun CartScreen(
     navController: NavController,
     orderViewModel: OrderViewModel,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    currencyViewModel: CurrencyViewModel
 ) {
     val cartItems by orderViewModel.cartItems.collectAsState()
     val cartTotal by orderViewModel.cartTotal.collectAsState()
@@ -39,7 +42,12 @@ fun CartScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Cart") }
+                title = { Text("My Cart") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
             )
         }
     ) { padding ->
@@ -69,14 +77,18 @@ fun CartScreen(
             ) {
                 LazyColumn(modifier = Modifier.weight(1f)) {
                     items(cartItems) { cartItem ->
-                        CartItemRow(cartItem = cartItem, orderViewModel = orderViewModel)
+                        CartItemRow(
+                            cartItem = cartItem, 
+                            orderViewModel = orderViewModel,
+                            currencyViewModel = currencyViewModel
+                        )
                         HorizontalDivider()
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                PriceBreakdownCard(subtotal = cartTotal)
+                PriceBreakdownCard(subtotal = cartTotal, currencyViewModel = currencyViewModel)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -101,7 +113,7 @@ fun CartScreen(
                                         navController.navigate(
                                             Routes.payment(
                                                 orderId = firstOrder.id,
-                                                amount = firstOrder.totalAmount,
+                                                amount = firstOrder.totalAmount + firstOrder.platformFee,
                                                 farmerName = firstOrder.farmerName,
                                                 pickupAddress = firstOrder.pickupAddress
                                             )
@@ -125,7 +137,11 @@ fun CartScreen(
  * Displays a single item in the cart with quantity controls.
  */
 @Composable
-private fun CartItemRow(cartItem: CartItem, orderViewModel: OrderViewModel) {
+private fun CartItemRow(
+    cartItem: CartItem, 
+    orderViewModel: OrderViewModel,
+    currencyViewModel: CurrencyViewModel
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -157,7 +173,7 @@ private fun CartItemRow(cartItem: CartItem, orderViewModel: OrderViewModel) {
         Spacer(modifier = Modifier.width(8.dp))
 
         val totalItemPrice = cartItem.product.price * cartItem.quantity
-        Text("NPR ${totalItemPrice.toInt()}", fontWeight = FontWeight.Bold)
+        Text(currencyViewModel.format(totalItemPrice), fontWeight = FontWeight.Bold)
 
         IconButton(onClick = { orderViewModel.removeFromCart(cartItem.product.id) }) {
             Icon(Icons.Default.Delete, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error)
@@ -169,7 +185,7 @@ private fun CartItemRow(cartItem: CartItem, orderViewModel: OrderViewModel) {
  * A card that shows the subtotal, platform fee, and total amount of the order.
  */
 @Composable
-private fun PriceBreakdownCard(subtotal: Double) {
+private fun PriceBreakdownCard(subtotal: Double, currencyViewModel: CurrencyViewModel) {
     val platformFee = subtotal * 0.02
     val total = subtotal + platformFee
 
@@ -177,19 +193,18 @@ private fun PriceBreakdownCard(subtotal: Double) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Items subtotal:")
-                Text("NPR ${subtotal.toInt()}")
+                Text(currencyViewModel.format(subtotal))
             }
             Spacer(modifier = Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Platform fee (2%):", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                Text("NPR ${platformFee.toInt()}", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                Text(currencyViewModel.format(platformFee), style = MaterialTheme.typography.bodySmall, color = TextSecondary)
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Total:", fontWeight = FontWeight.Bold)
-                Text("NPR ${total.toInt()}", fontWeight = FontWeight.Bold)
+                Text(currencyViewModel.format(total), fontWeight = FontWeight.Bold)
             }
         }
     }
 }
-

@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.hamilocalmain.data.model.Order
 import com.example.hamilocalmain.data.model.OrderStatus
+import com.example.hamilocalmain.ui.navigation.Routes
 import com.example.hamilocalmain.ui.screens.consumer.StatusBadge
 import com.example.hamilocalmain.ui.theme.TextSecondary
 import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
@@ -64,7 +65,11 @@ fun FarmerOrdersScreen(
                     } else {
                         LazyColumn(contentPadding = PaddingValues(16.dp)) {
                             items(orders) { order ->
-                                FarmerOrderCard(order = order, orderViewModel = orderViewModel)
+                                FarmerOrderCard(
+                                    order = order,
+                                    orderViewModel = orderViewModel,
+                                    navController = navController
+                                )
                                 Spacer(modifier = Modifier.height(12.dp))
                             }
                         }
@@ -79,8 +84,15 @@ fun FarmerOrdersScreen(
  * A card that displays a single incoming order with actions for the farmer.
  */
 @Composable
-private fun FarmerOrderCard(order: Order, orderViewModel: OrderViewModel) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun FarmerOrderCard(
+    order: Order,
+    orderViewModel: OrderViewModel,
+    navController: NavController
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { navController.navigate(Routes.orderDetail(order.id)) }
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(order.consumerName, fontWeight = FontWeight.Bold)

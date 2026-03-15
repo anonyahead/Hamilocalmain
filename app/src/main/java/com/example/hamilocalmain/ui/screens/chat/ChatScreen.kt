@@ -31,6 +31,7 @@ import com.example.hamilocalmain.ui.viewmodel.ChatViewModel
 @Composable
 fun ChatScreen(
     threadId: String,
+    otherUserName: String,
     navController: NavController,
     chatViewModel: ChatViewModel,
     authViewModel: AuthViewModel
@@ -54,7 +55,7 @@ fun ChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Chat") }, // In a real app, pass the other user's name
+                title = { Text(otherUserName) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

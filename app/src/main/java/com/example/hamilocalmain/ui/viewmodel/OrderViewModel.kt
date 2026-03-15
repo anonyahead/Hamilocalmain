@@ -105,9 +105,16 @@ class OrderViewModel(private val repository: OrderRepository = OrderRepository()
         val existing = current.find { it.product.id == product.id }
         if (existing != null) {
             val index = current.indexOf(existing)
-            current[index] = existing.copy(quantity = existing.quantity + quantity)
+            val newQuantity = existing.quantity + quantity
+            if (newQuantity <= 0) {
+                current.removeAt(index)
+            } else {
+                current[index] = existing.copy(quantity = newQuantity)
+            }
         } else {
-            current.add(CartItem(product, quantity))
+            if (quantity > 0) {
+                current.add(CartItem(product, quantity))
+            }
         }
         _cartItems.value = current
     }
@@ -158,6 +165,8 @@ class OrderViewModel(private val repository: OrderRepository = OrderRepository()
                 }
                 
                 val total = orderItems.sumOf { it.totalPrice }
+                val platformFee = total * 0.02
+                val farmerEarnings = total - platformFee
                 val order = Order(
                     consumerId = consumerId,
                     consumerName = consumerName,
@@ -165,6 +174,8 @@ class OrderViewModel(private val repository: OrderRepository = OrderRepository()
                     farmerName = farmerItems.first().product.farmerName,
                     items = orderItems,
                     totalAmount = total,
+                    platformFee = platformFee,
+                    farmerEarnings = farmerEarnings,
                     pickupAddress = pickupAddress
                 )
                 repository.createOrder(order).onSuccess { createdOrder ->

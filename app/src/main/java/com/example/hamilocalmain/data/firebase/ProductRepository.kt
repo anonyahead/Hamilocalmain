@@ -89,7 +89,15 @@ class ProductRepository(private val firestore: FirebaseFirestore = FirebaseFires
         return productsCollection.snapshots().map { snapshot ->
             val allProducts = snapshot.toObjects(Product::class.java)
             allProducts.filter { product ->
-                calculateDistance(lat, lng, product.location.latitude, product.location.longitude) <= radiusKm
+                // If either the consumer or product has no real location (default 0,0),
+                // include the product so it's always visible
+                val productHasLocation = product.location.latitude != 0.0 || product.location.longitude != 0.0
+                val consumerHasLocation = lat != 0.0 || lng != 0.0
+                if (!productHasLocation || !consumerHasLocation) {
+                    true  // show product if no location data
+                } else {
+                    calculateDistance(lat, lng, product.location.latitude, product.location.longitude) <= radiusKm
+                }
             }
         }
     }

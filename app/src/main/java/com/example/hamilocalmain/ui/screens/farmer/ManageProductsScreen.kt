@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.hamilocalmain.data.model.Product
 import com.example.hamilocalmain.data.model.ProductStatus
+import com.example.hamilocalmain.ui.navigation.Routes
 import com.example.hamilocalmain.ui.theme.Success
 import com.example.hamilocalmain.ui.theme.TextSecondary
 import com.example.hamilocalmain.ui.viewmodel.ProductState
@@ -75,7 +76,7 @@ fun ManageProductsScreen(
                             items(products) { product ->
                                 ManageProductCard(
                                     product = product,
-                                    onEdit = { /* Navigate to edit screen */ },
+                                    onEdit = { navController.navigate(Routes.ADD_PRODUCT) },
                                     onDelete = { productToDelete = product },
                                     onToggleAvailability = { isAvailable ->
                                         val newStatus = if (isAvailable) ProductStatus.AVAILABLE else ProductStatus.OUT_OF_STOCK
@@ -131,7 +132,7 @@ private fun ManageProductCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = product.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(
-                    text = "NPR ${product.price.toInt()} | Qty: ${product.availableQuantity.toInt()} ${product.unit.name.lowercase()}",
+                    text = "NPR ${product.price.toInt()} | Available: ${product.availableQuantity.toInt()} | Ordered: ${product.pendingOrderQuantity.toInt()} ${product.unit.name.lowercase()}",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary
                 )

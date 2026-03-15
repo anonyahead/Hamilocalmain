@@ -168,4 +168,27 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         _currentUser.value = null
         _authState.value = AuthState.Idle
     }
+
+    /**
+     * Deletes the user account and profile.
+     */
+    fun deleteAccount(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            val uid = authManager.getCurrentUser()?.uid ?: run {
+                onError("Not logged in")
+                return@launch
+            }
+            authManager.deleteAccount(uid)
+                .onSuccess {
+                    _currentUser.value = null
+                    _authState.value = AuthState.Idle
+                    onSuccess()
+                }
+                .onFailure {
+                    _authState.value = AuthState.Error(it.message ?: "Failed to delete account")
+                    onError(it.message ?: "Failed to delete account")
+                }
+        }
+    }
 }

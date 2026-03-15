@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,7 +46,21 @@ fun OrderHistoryScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("My Orders") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("My Orders") },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        navController.navigate(Routes.CONSUMER_HOME) {
+                            popUpTo(Routes.CONSUMER_HOME) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when (orderState) {
@@ -73,7 +89,11 @@ fun OrderHistoryScreen(
                     } else {
                         LazyColumn(contentPadding = PaddingValues(16.dp)) {
                             items(orders) { order ->
-                                OrderHistoryCard(order = order, onNavigateToRating = onNavigateToRating)
+                                OrderHistoryCard(
+                                    order = order,
+                                    navController = navController,
+                                    onNavigateToRating = onNavigateToRating
+                                )
                                 Spacer(modifier = Modifier.height(12.dp))
                             }
                         }
@@ -90,38 +110,46 @@ fun OrderHistoryScreen(
 @Composable
 fun OrderHistoryCard(
     order: Order,
+    navController: NavController,
     onNavigateToRating: (orderId: String, farmerName: String) -> Unit
 ) {
     val sdf = remember { SimpleDateFormat("dd MMM, yyyy", Locale.getDefault()) }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { navController.navigate(Routes.orderDetail(order.id)) }
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            if (order.items.isEmpty()) {
+                Text("Order on ${sdf.format(Date(order.createdAt))}", style = MaterialTheme.typography.labelMedium)
+            } else {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        text = "Order on ${sdf.format(Date(order.createdAt))}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextSecondary
+                    )
+                    StatusBadge(status = order.status)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Sold by: ${order.farmerName}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(
-                    text = "Order on ${sdf.format(Date(order.createdAt))}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = TextSecondary
+                    text = order.items.joinToString { "${it.quantity.toInt()}x ${it.productName}" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary,
+                    maxLines = 2
                 )
-                StatusBadge(status = order.status)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Sold by: ${order.farmerName}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(
-                text = order.items.joinToString { "${it.quantity.toInt()}x ${it.productName}" },
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-                maxLines = 2
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Total: NPR ${order.totalAmount.toInt()}", fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.weight(1f))
-                if (order.status == OrderStatus.COMPLETED && !order.rated) {
-                    Button(
-                        onClick = { onNavigateToRating(order.id, order.farmerName) },
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                    ) {
-                        Text("Rate Order ⭐")
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Total: NPR ${order.totalAmount.toInt()}", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.weight(1f))
+                    if (order.status == OrderStatus.COMPLETED && !order.rated) {
+                        Button(
+                            onClick = { onNavigateToRating(order.id, order.farmerName) },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text("Rate Order ⭐")
+                        }
                     }
                 }
             }

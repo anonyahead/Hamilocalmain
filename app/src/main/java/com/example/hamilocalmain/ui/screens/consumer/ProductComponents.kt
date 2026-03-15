@@ -22,6 +22,7 @@ import com.example.hamilocalmain.ui.theme.TextPrimary
 import com.example.hamilocalmain.ui.theme.TextSecondary
 import com.example.hamilocalmain.ui.theme.Warning
 import com.example.hamilocalmain.ui.theme.Error
+import com.example.hamilocalmain.ui.viewmodel.CurrencyViewModel
 
 /**
  * Product listing card used in BrowseProductsScreen and ConsumerHomeScreen.
@@ -31,6 +32,7 @@ import com.example.hamilocalmain.ui.theme.Error
 fun ProductCard(
     product: Product,
     onClick: () -> Unit,
+    currencyViewModel: CurrencyViewModel,
     modifier: Modifier = Modifier,
     distance: String? = null
 ) {
@@ -70,7 +72,7 @@ fun ProductCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                PriceTag(price = product.price, unit = product.unit)
+                PriceTag(price = product.price, unit = product.unit, currencyViewModel = currencyViewModel)
                 
                 if (product.isOrganic) {
                     SuggestionChip(
@@ -156,11 +158,12 @@ fun CategoryChip(
 fun PriceTag(
     price: Double,
     unit: UnitType,
+    currencyViewModel: CurrencyViewModel,
     modifier: Modifier = Modifier
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Text(
-            text = "NPR ${price.toInt()}",
+            text = currencyViewModel.format(price),
             style = MaterialTheme.typography.titleMedium,
             color = SecondaryOrange,
             fontWeight = FontWeight.Bold

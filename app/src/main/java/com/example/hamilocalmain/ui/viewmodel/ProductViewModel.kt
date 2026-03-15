@@ -31,9 +31,19 @@ class ProductViewModel(private val repository: ProductRepository = ProductReposi
     private val _nearbyProductsState = MutableStateFlow<ProductState>(ProductState.Loading)
     val nearbyProductsState: StateFlow<ProductState> = _nearbyProductsState.asStateFlow()
 
+    private val _selectedProduct = MutableStateFlow<Product?>(null)
+    val selectedProduct: StateFlow<Product?> = _selectedProduct.asStateFlow()
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             // all Firebase and repository calls here
+        }
+    }
+
+    fun loadProduct(productId: String) {
+        viewModelScope.launch {
+            val result = repository.getProduct(productId)
+            result.onSuccess { _selectedProduct.value = it }
         }
     }
 

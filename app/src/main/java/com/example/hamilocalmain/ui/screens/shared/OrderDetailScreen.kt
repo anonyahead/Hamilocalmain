@@ -18,6 +18,8 @@ import com.example.hamilocalmain.data.model.OrderStatus
 import com.example.hamilocalmain.ui.navigation.Routes
 import com.example.hamilocalmain.ui.screens.consumer.StatusBadge
 import com.example.hamilocalmain.ui.theme.TextSecondary
+import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
+import com.example.hamilocalmain.ui.viewmodel.CurrencyViewModel
 import com.example.hamilocalmain.ui.viewmodel.OrderState
 import com.example.hamilocalmain.ui.viewmodel.OrderViewModel
 
@@ -29,12 +31,18 @@ import com.example.hamilocalmain.ui.viewmodel.OrderViewModel
 fun OrderDetailScreen(
     orderId: String,
     navController: NavController,
-    orderViewModel: OrderViewModel
+    orderViewModel: OrderViewModel,
+    authViewModel: AuthViewModel,
+    currencyViewModel: CurrencyViewModel
 ) {
     // In a real app, we would load the specific order by ID
     // For now, we assume it's loaded in the state
-    val orderState by orderViewModel.consumerOrdersState.collectAsState()
-    val order = (orderState as? OrderState.Success)?.orders?.find { it.id == orderId }
+    val consumerState by orderViewModel.consumerOrdersState.collectAsState()
+    val farmerState by orderViewModel.farmerOrdersState.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
+
+    val order = (consumerState as? OrderState.Success)?.orders?.find { it.id == orderId }
+        ?: (farmerState as? OrderState.Success)?.orders?.find { it.id == orderId }
 
     Scaffold(
         topBar = {
@@ -78,7 +86,7 @@ fun OrderDetailScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("${item.quantity.toInt()}x ${item.productName}", modifier = Modifier.weight(1f))
-                            Text("NPR ${item.totalPrice.toInt()}")
+                            Text(currencyViewModel.format(item.totalPrice))
                         }
                     }
                 }
@@ -88,22 +96,26 @@ fun OrderDetailScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Subtotal")
-                        Text("NPR ${(order.totalAmount - order.platformFee).toInt()}")
+                        Text(currencyViewModel.format(order.totalAmount - order.platformFee))
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Platform Fee", color = TextSecondary)
-                        Text("NPR ${order.platformFee.toInt()}", color = TextSecondary)
+                        Text(currencyViewModel.format(order.platformFee), color = TextSecondary)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Text("NPR ${order.totalAmount.toInt()}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(currencyViewModel.format(order.totalAmount), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
-                    onClick = { navController.navigate(Routes.chat(order.farmerId)) },
+                    onClick = {
+                        val threadId = listOf(currentUser?.id ?: "", order.farmerId)
+                            .sorted().joinToString("_")
+                        navController.navigate(Routes.chat(threadId, order.farmerName))
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     contentPadding = PaddingValues(16.dp)
                 ) {

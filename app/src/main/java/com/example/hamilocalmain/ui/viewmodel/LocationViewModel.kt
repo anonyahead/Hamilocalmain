@@ -54,14 +54,28 @@ class LocationViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val geocoder = Geocoder(context, Locale.getDefault())
-                val addresses = geocoder.getFromLocation(lat, lng, 1)
-                if (!addresses.isNullOrEmpty()) {
-                    val address = addresses[0]
-                    val addressParts = mutableListOf<String>()
-                    for (i in 0..address.maxAddressLineIndex) {
-                        addressParts.add(address.getAddressLine(i))
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    geocoder.getFromLocation(lat, lng, 1) { addresses ->
+                        if (addresses.isNotEmpty()) {
+                            val address = addresses[0]
+                            val addressParts = mutableListOf<String>()
+                            for (i in 0..address.maxAddressLineIndex) {
+                                addressParts.add(address.getAddressLine(i))
+                            }
+                            _currentAddress.value = addressParts.joinToString(", ")
+                        }
                     }
-                    _currentAddress.value = addressParts.joinToString(", ")
+                } else {
+                    @Suppress("DEPRECATION")
+                    val addresses = geocoder.getFromLocation(lat, lng, 1)
+                    if (!addresses.isNullOrEmpty()) {
+                        val address = addresses[0]
+                        val addressParts = mutableListOf<String>()
+                        for (i in 0..address.maxAddressLineIndex) {
+                            addressParts.add(address.getAddressLine(i))
+                        }
+                        _currentAddress.value = addressParts.joinToString(", ")
+                    }
                 }
             } catch (e: Exception) {
                 _currentAddress.value = "Address not found"

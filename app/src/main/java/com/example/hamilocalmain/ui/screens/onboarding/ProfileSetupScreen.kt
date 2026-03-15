@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
@@ -43,6 +44,7 @@ fun ProfileSetupScreen(
     var name by remember { mutableStateOf("") }
     var selectedRole by remember { mutableStateOf<UserType?>(null) }
     var addressInput by remember { mutableStateOf("") }
+    var isLoadingLocation by remember { mutableStateOf(false) }
     
     val authState by authViewModel.authState.collectAsState()
     val detectedAddress by locationViewModel.currentAddress.collectAsState()
@@ -52,6 +54,7 @@ fun ProfileSetupScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
+            isLoadingLocation = true
             locationViewModel.requestLocation(context)
         }
     }
@@ -60,6 +63,7 @@ fun ProfileSetupScreen(
     LaunchedEffect(detectedAddress) {
         if (detectedAddress.isNotEmpty() && detectedAddress != "Address not found") {
             addressInput = detectedAddress
+            isLoadingLocation = false // stop loading when address arrives
         }
     }
 
@@ -80,7 +84,14 @@ fun ProfileSetupScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Set Up Profile") })
+            TopAppBar(
+                title = { Text("Set Up Profile") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
         }
     ) { padding ->
         Column(
@@ -138,19 +149,24 @@ fun ProfileSetupScreen(
                     label = { Text("Address (City/District)") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
-                        IconButton(onClick = { 
-                            when {
-                                ContextCompat.checkSelfPermission(
-                                    context, Manifest.permission.ACCESS_FINE_LOCATION
-                                ) == PackageManager.PERMISSION_GRANTED -> {
-                                    locationViewModel.requestLocation(context)
+                        if (isLoadingLocation) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            IconButton(onClick = { 
+                                when {
+                                    ContextCompat.checkSelfPermission(
+                                        context, Manifest.permission.ACCESS_FINE_LOCATION
+                                    ) == PackageManager.PERMISSION_GRANTED -> {
+                                        isLoadingLocation = true
+                                        locationViewModel.requestLocation(context)
+                                    }
+                                    else -> {
+                                        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                    }
                                 }
-                                else -> {
-                                    locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                                }
+                            }) {
+                                Icon(Icons.Default.LocationOn, contentDescription = "Pick My Location", tint = PrimaryGreen)
                             }
-                        }) {
-                            Icon(Icons.Default.LocationOn, contentDescription = "Pick My Location", tint = PrimaryGreen)
                         }
                     }
                 )
@@ -160,6 +176,7 @@ fun ProfileSetupScreen(
                             ContextCompat.checkSelfPermission(
                                 context, Manifest.permission.ACCESS_FINE_LOCATION
                             ) == PackageManager.PERMISSION_GRANTED -> {
+                                isLoadingLocation = true
                                 locationViewModel.requestLocation(context)
                             }
                             else -> {

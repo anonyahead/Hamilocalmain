@@ -106,4 +106,19 @@ class FirebaseAuthManager(private val context: Context) {
     fun logout() {
         auth.signOut()
     }
+
+    /**
+     * Deletes the user profile from Firestore and the Firebase Auth account.
+     */
+    suspend fun deleteAccount(userId: String): Result<Unit> {
+        return try {
+            // Delete Firestore user document
+            firestore.collection("users").document(userId).delete().await()
+            // Delete Firebase Auth account
+            auth.currentUser?.delete()?.await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

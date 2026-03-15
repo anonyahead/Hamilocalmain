@@ -1,5 +1,6 @@
 package com.example.hamilocalmain.data.firebase
 
+import com.example.hamilocalmain.data.model.ChatThread
 import com.example.hamilocalmain.data.model.Message
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -11,6 +12,14 @@ import kotlinx.coroutines.tasks.await
 class ChatRepository(private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()) {
 
     private val threadsCollection = firestore.collection("threads")
+
+    fun getUserThreadsFlow(userId: String): Flow<List<ChatThread>> {
+        return firestore.collection("threads")
+            .whereArrayContains("userIds", userId)
+            .orderBy("lastMessageTime", Query.Direction.DESCENDING)
+            .snapshots()
+            .map { snapshot -> snapshot.toObjects(ChatThread::class.java) }
+    }
 
     suspend fun getOrCreateThread(userId1: String, userId2: String): String {
         val sortedIds = listOf(userId1, userId2).sorted()
@@ -44,15 +53,20 @@ class ChatRepository(private val firestore: FirebaseFirestore = FirebaseFirestor
         return try {
             val messageRef = threadsCollection.document(threadId).collection("messages").document()
             val messageWithId = message.copy(id = messageRef.id, threadId = threadId)
+
+            // Use set() with merge=true on thread doc so it works even if thread doesn't exist yet
+            val threadRef = threadsCollection.document(threadId)
             
             firestore.runBatch { batch ->
                 batch.set(messageRef, messageWithId)
-                batch.update(
-                    threadsCollection.document(threadId),
+                batch.set(
+                    threadRef,
                     mapOf(
+                        "id" to threadId,
                         "lastMessage" to message.content,
                         "lastMessageTime" to message.timestamp
-                    )
+                    ),
+                    com.google.firebase.firestore.SetOptions.merge()
                 )
             }.await()
             Result.success(Unit)

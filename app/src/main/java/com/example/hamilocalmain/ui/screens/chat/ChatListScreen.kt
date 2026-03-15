@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +23,7 @@ import com.example.hamilocalmain.data.model.ChatThread
 import com.example.hamilocalmain.ui.navigation.Routes
 import com.example.hamilocalmain.ui.theme.AccentTeal
 import com.example.hamilocalmain.ui.theme.TextSecondary
+import com.example.hamilocalmain.ui.viewmodel.AuthViewModel
 import com.example.hamilocalmain.ui.viewmodel.ChatViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -33,17 +36,26 @@ import java.util.Locale
 @Composable
 fun ChatListScreen(
     navController: NavController,
-    chatViewModel: ChatViewModel
+    chatViewModel: ChatViewModel,
+    authViewModel: AuthViewModel
 ) {
-    // For demonstration, using placeholder threads. In a real app, these come from chatViewModel.
-    val threads = listOf(
-        ChatThread(id = "thread_1", participantNames = listOf("Farmer Ram"), lastMessage = "Your tomatoes are ready!", lastMessageTime = System.currentTimeMillis(), unreadCount = 2),
-        ChatThread(id = "thread_2", participantNames = listOf("Sita Shrestha"), lastMessage = "Is the milk fresh?", lastMessageTime = System.currentTimeMillis() - 3600000, unreadCount = 0)
-    )
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val threads by chatViewModel.threadsState.collectAsState()
+
+    LaunchedEffect(currentUser) {
+        currentUser?.id?.let { chatViewModel.loadUserThreads(it) }
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Messages") })
+            TopAppBar(
+                title = { Text("Messages") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
         }
     ) { padding ->
         if (threads.isEmpty()) {
@@ -57,7 +69,10 @@ fun ChatListScreen(
                 items(threads) { thread ->
                     ChatThreadCard(
                         thread = thread,
-                        onClick = { navController.navigate(Routes.chat(thread.id)) }
+                        onClick = {
+                            val otherName = thread.participantNames.firstOrNull() ?: "Chat"
+                            navController.navigate(Routes.chat(thread.id, otherName))
+                        }
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 }
